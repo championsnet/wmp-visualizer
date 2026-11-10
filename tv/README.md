@@ -60,7 +60,7 @@ The APK is signed with a local debug key, which is fine for sideloading. Publish
    ```sh
    ares-setup-device                         # add the TV: its IP, port 9922, user prisoner
    ares-novacom --device tv --getkey         # enter the passphrase shown on the TV
-   ares-install --device tv tv/dist/info.stamko.wmp_1.0.0_all.ipk
+   ares-install --device tv tv/dist/info.stamko.wmp_1.1.0_all.ipk
    ares-launch --device tv info.stamko.wmp
    ```
 Developer Mode lasts 1000 hours and can be extended in the Developer Mode app. The LG Content Store needs a seller account and review.

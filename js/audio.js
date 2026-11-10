@@ -1,12 +1,14 @@
 // Audio capture and analysis. One AnalyserNode is shared by every source;
 // per frame it is reduced to a small "frame" object that visualizations read.
 import { DemoSynth, STYLES } from './demo.js';
+import { PulseTracker } from './beat.js';
 
 export const NUM_BANDS = 64;
 const MIN_FREQ = 35;
 const MAX_FREQ = 16000;
 const BEAT_HISTORY = 43;          // ~0.7 s at 60 fps
 const FFT_SIZE = 2048;
+const DISPLAY_DELAY = 0.025;      // seconds from drawing a frame to seeing it
 
 export class AudioEngine {
   constructor() {
@@ -15,6 +17,9 @@ export class AudioEngine {
     this.analyser = null;         // smoothed, for the visuals
     this.beatAnalyser = null;     // barely smoothed, for transient (beat) detection
     this.beatFreq = new Uint8Array(FFT_SIZE / 2);
+    this.tap = null;              // raw samples for the beat tracker
+    this.pulse = null;            // the predictive beat tracker (null on browsers that cannot feed it)
+    this.classicBeat = false;     // true: use the older onset-interval tempo clock instead
     this.outGain = null;
     this.current = null;          // { kind, label, teardown }
     this.audioEl = null;
@@ -34,12 +39,14 @@ export class AudioEngine {
       bass: 0, mid: 0, treble: 0,
       rms: 0, level: 0,
       beat: false, beatStrength: 0,
-      // Tempo: a beat clock that locks onto the detected beats.
+      // Tempo: a beat clock that follows the predicted beats (see beat.js).
       bpm: 120,          // estimated tempo
       phase: 0,          // 0..1 position inside the current beat (0 = on the beat)
       beatCount: 0,      // whole beats elapsed on the clock (use parity for left/right moves)
       tick: false,       // true on the frame the clock crosses a beat
       tempoConfident: false,
+      pulse: 0,          // 0..1 predicted beat pulse, 1 on the beat
+      stability: 0,      // 0..1 how well the tracker's predictions agree
       active: false,
     };
 
@@ -56,6 +63,9 @@ export class AudioEngine {
     this._lastT = 0;
     this._onsets = [];
     this._bpmScore = new Float32Array(181);
+    this._tapBuf = null;
+    this._tapPos = -1;            // audio fed to the tracker so far, in samples of context time
+    this._beatCost = 0;
   }
 
   // ---- events -----------------------------------------------------------
@@ -73,6 +83,8 @@ export class AudioEngine {
     if (this.current.kind === 'demo' || this.current.kind === 'style') return !!this.demo && this.demo.running;
     return true;
   }
+  // Seconds of audio the beat tracker has not been fed yet (under one hop while frames keep coming).
+  get pulseAge() { return this.ctx && this._tapPos >= 0 ? this.ctx.currentTime - this._tapPos / this.ctx.sampleRate : 0; }
   get canPause() { return this.kind === 'file' || this.kind === 'demo' || this.kind === 'style'; }
   get duration() { return this.kind === 'file' && this.audioEl && isFinite(this.audioEl.duration) ? this.audioEl.duration : 0; }
   get position() { return this.kind === 'file' && this.audioEl ? this.audioEl.currentTime : 0; }
@@ -99,6 +111,18 @@ export class AudioEngine {
       this.input = this.ctx.createGain();
       this.input.connect(this.analyser);
       this.input.connect(this.beatAnalyser);
+      // The beat tracker reads raw samples from a third analyser, used as a
+      // ring buffer: long, so a few slow frames lose no audio. Browsers too
+      // old for this keep the older tempo clock.
+      try {
+        const tap = this.ctx.createAnalyser();
+        tap.fftSize = 16384;
+        this._tapBuf = new Float32Array(tap.fftSize);
+        tap.getFloatTimeDomainData(this._tapBuf);
+        this.input.connect(tap);
+        this.tap = tap;
+        this.pulse = new PulseTracker(this.ctx.sampleRate);
+      } catch (_) { this.tap = null; this.pulse = null; }
       this.outGain = this.ctx.createGain();
       this.outGain.gain.value = this.volume;
       this.outGain.connect(this.ctx.destination);
@@ -306,6 +330,7 @@ export class AudioEngine {
 
   // ---- per-frame analysis ----------------------------------------------
   _resetAnalysis() {
+    this._tapPos = -1;
     this._gainEnv = 0.3;
     this._levelEnv = 0.05;
     this._history.fill(0);
@@ -402,10 +427,73 @@ export class AudioEngine {
     this._hi = (this._hi + 1) % BEAT_HISTORY;
     this._prevBeatEnergy = e;
     this._smooth(0, true);
-    this._tempo(t, f.beat);
+    if (this.pulse && !this.classicBeat) this._predict();
+    else this._tempo(t, f.beat);
     return f;
   }
 
+  // How far ahead of the analysed audio the beat clock runs, in seconds, so
+  // that a beat is on screen when it is heard. A microphone hears the sound
+  // late; our own playback is analysed a little before it leaves the speakers.
+  _lookahead() {
+    const kind = this.kind;
+    if (kind === 'mic' || kind === 'display') {
+      const track = this.current.stream && this.current.stream.getAudioTracks()[0];
+      const latency = track && track.getSettings ? track.getSettings().latency : 0;
+      return DISPLAY_DELAY + Math.min(0.1, latency > 0 ? latency : 0.02);
+    }
+    if (kind === 'file' || kind === 'demo') return DISPLAY_DELAY - Math.min(0.05, this.ctx.outputLatency || this.ctx.baseLatency || 0);
+    return DISPLAY_DELAY;
+  }
+
+  // Feeds the beat tracker the audio that arrived since the last frame, one
+  // hop at a time, then reads its beat clock.
+  _predict() {
+    const f = this.frame, tr = this.pulse, sr = this.ctx.sampleRate;
+    const hop = tr.hop, n = tr.fftSize, buf = this._tapBuf;
+    const now = this.ctx.currentTime;
+    const target = Math.floor(now * sr);
+    if (this._tapPos < 0 || target - this._tapPos > sr * 2) {      // a new source, or a long stall
+      tr.reset();
+      // when the music is our own, its tempo is no secret
+      const style = this.current.style && STYLES[this.current.style];
+      if (style) tr.setPrior(style.bpm, 0.35); else tr.setPrior();
+      this._tapPos = target;
+      this._lastPredict = now;
+    }
+    let avail = target - this._tapPos;
+    if (avail >= hop) {
+      this.tap.getFloatTimeDomainData(buf);
+      const reach = buf.length - n;                // the oldest frame start still in the buffer
+      if (avail - hop > reach) {                   // slow frames: that audio is gone
+        const lost = Math.ceil((avail - hop - reach) / hop);
+        tr.skip(lost);
+        this._tapPos += lost * hop;
+        avail -= lost * hop;
+      }
+      const t0 = performance.now();
+      while (avail >= hop) {
+        avail -= hop;
+        this._tapPos += hop;
+        tr.process(buf, buf.length - avail - n);
+      }
+      // a slow device estimates the tempo less often instead of dropping frames
+      this._beatCost += (performance.now() - t0 - this._beatCost) * 0.05;
+      if (this._beatCost > 3 && tr.every < 8) { tr.every *= 2; this._beatCost = 0; }
+    }
+    tr.update(Math.min(0.1, Math.max(0, now - this._lastPredict)), now - this._tapPos / sr + this._lookahead());
+    this._lastPredict = now;
+    f.phase = tr.phase;
+    f.tick = tr.tick;
+    if (tr.tick) f.beatCount++;
+    f.bpm = tr.bpm;
+    f.tempoConfident = tr.confident;
+    f.pulse = Math.max(0, tr.pulse);
+    f.stability = tr.stability;
+  }
+
+  // The older tempo clock, kept for browsers that cannot feed the tracker and
+  // for comparison (?beat=classic).
   // Tempo from inter-onset intervals: every pair of recent onsets votes for
   // the tempo its gap implies (folded into 75-170 BPM). Votes decay, so the
   // estimate follows tempo changes. A phase-locked clock then advances at

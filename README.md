@@ -8,7 +8,7 @@ Live: **https://wmp.stamko.info** · TV apps for Android TV, LG and Samsung on t
 
 ## Visualizations
 
-Grouped by the collection names Windows Media Player used, plus three modern ones.
+Grouped by the collection names Windows Media Player used, plus a few modern ones.
 
 | Collection | Name | Look |
 | --- | --- | --- |
@@ -24,6 +24,7 @@ Grouped by the collection names Windows Media Player used, plus three modern one
 | Modern | Neon Terrain | Synthwave landscape built from the spectrum history, with a sun on the horizon |
 | Modern | Radial Pulse | Mirrored circular spectrum with a breathing core |
 | Modern | Particle Flow | Particles drifting through a morphing flow field, pushed out on beats |
+| Modern | Beat Radar | The beat tracker's own view: what it heard on the left, the beats it predicts sliding in from the right, and how well each tempo fits |
 | Screensavers | DVD Bounce | The bouncing DVD logo: new colour on each wall, swells on the beat, confetti on a perfect corner hit |
 | Screensavers | Starfield | Flying through stars; loudness is warp speed, beats tint them |
 | Screensavers | Mystify | Two bouncing polygons with echo trails |
@@ -49,9 +50,40 @@ Switch with the dropdown, the arrow buttons, or the Left / Right keys. "Random" 
 
 Random uses a shuffled playlist: each visualization plays once per round, and two from the same collection never play back to back. With Random on, Next / Previous also pick at random.
 
-A tempo tracker in `js/audio.js` estimates BPM and runs a beat clock (`frame.phase`, `frame.beatCount`) locked to the detected beats; dancing characters and stepping animations use it so they stay on the beat.
+Dancing characters, stepping animations, the beat pump and Random's phrase timing all run on a beat clock (`frame.phase`, `frame.tick`, `frame.beatCount`, `frame.bpm`) that predicts the beats; see [Beat tracking](#beat-tracking).
 
 Milkdrop uses [Butterchurn](https://github.com/jberg/butterchurn) (MIT), self-hosted in `vendor/butterchurn/` and loaded only when selected.
+
+## Beat tracking
+
+The beat clock comes from `js/beat.js`, a plain-JavaScript implementation of **real-time PLP** (predominant local pulse) after Meier, Chiu & Müller, [A Real-Time Beat Tracking System with Zero Latency and Enhanced Controllability](https://transactions.ismir.net/articles/10.5334/tismir.189) (TISMIR, 2024), ported from their MIT-licensed [reference code](https://github.com/groupmm/real_time_plp).
+
+Every 10 ms or so it measures how much louder the spectrum just got (the "novelty"), finds the tempo and phase that best explain the last 3 seconds of novelty, and adds a sinusoid with that tempo and phase, extended 3 seconds into the future, to a buffer. Hundreds of these overlapping predictions add up to a pulse whose crests are the beats, including the ones that have not sounded yet. So a beat can be drawn as it is heard, not a moment after: the clock reads the pulse 25 ms ahead to cover the display's delay (more for a microphone, which hears the sound late). The **Beat Radar** visualization shows all of this live.
+
+The paper drives the method with a neural network's beat activation. To stay light enough for TVs, this one uses plain spectral flux and makes up for it with:
+
+- flux in third-octave bands, so the treble does not outvote the bass;
+- tempo salience = Fourier tempogram x autocorrelation of the novelty at one and two beat periods (after Peeters, 2007) x a preference for a comfortable tapping pace, held over a few seconds, which keeps the pulse off dotted and wrong-speed levels;
+- a comb of beat-spaced teeth slid over the novelty, which snaps each prediction from the fitted sine onto the actual onsets;
+- a kick-drum check: when a steady kick clearly lands half-way between the predicted beats, the pulse moves onto it (off-beat bass and hi-hats otherwise capture the phase in dance music);
+- a complex-valued pulse buffer, so the beat phase is read directly and between frames, and a beat clock that follows it and free-runs when the music stops.
+
+When the app generates the music itself (the demo and the music styles) it tells the tracker which tempo to expect.
+
+Measured with the usual beat-tracking F-measure (70 ms window, first 5 s of each clip ignored) on two standard annotated datasets. Settings were chosen on the even-numbered clips; these are the odd-numbered ones:
+
+| Dataset | Previous tracker | PLP alone (reference settings), fed plain flux | This tracker | Paper, with a neural activation |
+| --- | --- | --- | --- | --- |
+| GTZAN (499 clips, 10 genres) | 34.4 | 45.2 | **66.4** | 74.7 |
+| Ballroom (349 clips) | 35.7 | 42.7 | **69.9** | 84.4 |
+
+The paper's figures are its own, on the full datasets. The previous tracker (bass-energy onsets, inter-onset tempo voting, a clock nudged towards each onset) is still in `js/audio.js` for browsers too old to feed the new one, and `?beat=classic` switches to it for comparison.
+
+Known limits: a quarter to a third of the clips are followed at twice the annotated tempo (every annotated beat gets a tick, with an extra one between), waltzes and classical music score lowest (44 and 39), and it needs a few seconds of music to lock on.
+
+Cost: about 0.035 ms per 10 ms of audio on an Apple-silicon laptop (a third of a percent of one core), with no model to download and no dependencies. On a slow device the engine estimates the tempo less often instead of dropping frames.
+
+To reproduce the table: `node scripts/beat-bench.mjs` (the file's header says where to get the datasets).
 
 ## Audio sources
 
@@ -107,9 +139,11 @@ index.html          page and chrome
 css/style.css       Windows Media Player style skin, full-screen and narrow-window rules
 js/main.js          UI wiring, resize, main loop, keyboard, drag and drop, full screen
 js/audio.js         AudioEngine: sources, analyser, per-frame bands / beat detection
-js/demo.js          DemoSynth: the generated demo loop
+js/beat.js          PulseTracker: predictive beat tracking (see Beat tracking)
+js/demo.js          DemoSynth: the generated demo loop and the music styles
 js/viz/base.js      Visualization base class, time-based FeedbackBuffer, triggered WaveSampler, helpers
 js/viz/*.js         one file per visualization; js/viz/index.js lists them in menu order
+scripts/beat-bench.mjs   scores the beat tracker on annotated datasets
 ```
 
 For testing, `?autostart=demo&viz=ambience` (or `autostart=mic` / `file` / `display`) starts a source and picks a visualization on load. Browsers only allow that without a click when autoplay is permitted, so in normal use the picker is shown instead.

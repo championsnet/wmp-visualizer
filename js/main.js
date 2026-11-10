@@ -39,6 +39,7 @@ const sourceButtons = Array.from(document.querySelectorAll('.source-buttons [dat
 const CYCLE_MIN = 14, CYCLE_MAX = 28;
 const newCycleTarget = () => CYCLE_MIN + Math.random() * (CYCLE_MAX - CYCLE_MIN);
 const engine = new AudioEngine();
+engine.classicBeat = new URLSearchParams(location.search).get('beat') === 'classic';
 const vizInstances = VISUALIZATIONS.map((V) => new V());
 
 let viz = null;
