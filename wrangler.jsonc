@@ -1,0 +1,16 @@
+// Cloudflare deployment: a static-assets Worker serving this folder as-is (no build step).
+//   npx wrangler deploy
+// Files listed in .assetsignore are not uploaded.
+{
+  "name": "wmp",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "none"
+  },
+  // Only this one hostname; it adds a single DNS record for wmp.stamko.info and touches nothing else.
+  "routes": [{ "pattern": "wmp.stamko.info", "custom_domain": true }],
+  "workers_dev": false,
+  "preview_urls": false
+}

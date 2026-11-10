@@ -1,0 +1,17 @@
+{
+  "id": "info.stamko.wmp",
+  "version": "1.0.0",
+  "vendor": "stamko.info",
+  "type": "web",
+  "main": "index.html",
+  "title": "WMP Visualizer",
+  "icon": "icon.png",
+  "largeIcon": "largeIcon.png",
+  "bgImage": "splash.png",
+  "splashBackground": "splash.png",
+  "bgColor": "#000000",
+  "iconColor": "#0c3f8f",
+  "resolution": "1920x1080",
+  "disableBackHistoryAPI": true,
+  "requiredACG": []
+}

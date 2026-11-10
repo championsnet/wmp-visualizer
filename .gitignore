@@ -1,0 +1,13 @@
+.DS_Store
+node_modules/
+.wrangler/
+GOAL.md
+# TV build outputs (attached to GitHub releases instead)
+tv/dist/
+tv/android/.gradle/
+tv/android/app/build/
+tv/android/app/src/main/assets/www/
+tv/android/app/src/main/res/mipmap-*/
+tv/android/app/src/main/res/drawable-*/
+tv/android/local.properties
+tv/android/build/

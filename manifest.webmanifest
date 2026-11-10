@@ -1,0 +1,12 @@
+{
+  "name": "Media Player Visualizer",
+  "short_name": "Visualizer",
+  "description": "Classic Windows Media Player style music visualizations in the browser.",
+  "start_url": "/",
+  "display": "fullscreen",
+  "background_color": "#000000",
+  "theme_color": "#1a2536",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

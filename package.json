@@ -1,0 +1,13 @@
+{
+  "name": "media-player-visualizer",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Windows Media Player style music visualizations driven by the microphone, tab/screen audio, or an audio file.",
+  "scripts": {
+    "start": "python3 -m http.server 8000 --bind 127.0.0.1",
+    "check": "for f in js/*.js js/viz/*.js; do node --check \"$f\" || exit 1; done && echo 'syntax ok'",
+    "deploy": "npx --yes wrangler@4 deploy",
+    "build:tv": "node scripts/build-tv.mjs"
+  }
+}

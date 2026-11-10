@@ -1,0 +1,15 @@
+.assetsignore
+.git
+.claude
+.wrangler
+node_modules
+wrangler.jsonc
+package.json
+package-lock.json
+GOAL.md
+README.md
+.DS_Store
+tv
+scripts
+LICENSE
+.gitignore

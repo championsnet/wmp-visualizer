@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Windows Media Player Visualizer Online – Free Music Visualizations</title>
+  <meta name="description" content="Free online recreation of the classic Windows Media Player visualizations: Bars, Ocean Mist, Battery, Ambience, Alchemy and more, plus modern ones. Reacts live to your microphone, tab audio or a music file. Runs in the browser, nothing to install.">
+  <meta name="keywords" content="milkdrop online, winamp visualizer, party parrot, nyan cat visualizer, flying toasters, 3d maze screensaver, matrix rain, windows media player visualizer, dvd screensaver, bouncing dvd logo, starfield, mystify, 3d pipes, wmp visualizations, music visualizer online, audio visualizer, battery visualization, ambience, alchemy, bars and waves, microphone visualizer">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <meta name="theme-color" content="#1a2536">
+  <meta name="color-scheme" content="dark">
+  <link rel="canonical" href="https://wmp.stamko.info/">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="og.png">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Media Player Visualizer">
+  <meta property="og:url" content="https://wmp.stamko.info/">
+  <meta property="og:title" content="Windows Media Player Visualizer Online">
+  <meta property="og:description" content="The classic WMP music visualizations, recreated in your browser. Point them at your mic, a tab, or a song.">
+  <meta property="og:image" content="https://wmp.stamko.info/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="A kaleidoscope music visualization in a Windows Media Player style window">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Windows Media Player Visualizer Online">
+  <meta name="twitter:description" content="The classic WMP music visualizations, recreated in your browser.">
+  <meta name="twitter:image" content="https://wmp.stamko.info/og.png">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Media Player Visualizer",
+    "alternateName": "Windows Media Player Visualizer Online",
+    "url": "https://wmp.stamko.info/",
+    "image": "https://wmp.stamko.info/og.png",
+    "description": "Free online recreation of the classic Windows Media Player music visualizations, plus modern ones, driven live by your microphone, shared tab audio or an audio file.",
+    "applicationCategory": "MultimediaApplication",
+    "operatingSystem": "Any (modern web browser)",
+    "browserRequirements": "Requires JavaScript and the Web Audio API",
+    "isAccessibleForFree": true,
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "featureList": [
+      "Bars, Scope, Ocean Mist and Fire Storm (Bars and Waves)",
+      "Ambience, Battery, Alchemy, Plenoptic and Musical Colors",
+      "Modern Neon Terrain, Radial Pulse and Particle Flow",
+      "Milkdrop presets running in WebGL",
+      "Screensavers: bouncing DVD logo, Starfield, Mystify, 3D Pipes, 3D Maze, 3D Text, Bezier, Flying Toasters, Digital Rain, Bliss, Blue Screen",
+      "Memes dancing on the beat: Rainbow Cat, Party Parrot, Dancing Baby, Vibing Cat, Doge",
+      "Tempo detection and shareable links",
+      "Microphone, tab or screen audio, audio file and demo sources",
+      "Full screen and auto cycle"
+    ]
+  }
+  </script>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app" class="app">
+    <header class="titlebar" role="banner">
+      <div class="brand"><span class="orb"></span><span>Media Player Visualizer</span></div>
+      <nav class="tabs" aria-hidden="true">
+        <span class="tab active">Now Playing</span>
+        <span class="tab">Library</span>
+        <span class="tab">Rip</span>
+        <span class="tab">Burn</span>
+        <span class="tab">Sync</span>
+      </nav>
+      <div class="viz-label" id="vizLabel">Visualization</div>
+    </header>
+
+    <main class="stage" id="stage" aria-label="Visualization">
+      <canvas id="viz" role="img" aria-label="Animated music visualization"></canvas>
+      <div class="viz-name" id="vizName"></div>
+      <div class="now-playing" id="nowPlaying" aria-live="polite"></div>
+
+      <div class="overlay" id="startOverlay">
+        <div class="panel">
+          <h1>Windows Media Player Visualizer</h1>
+          <p>The classic WMP music visualizations, rebuilt for the browser, plus a few modern ones. Choose where the audio comes from and the visuals react to whatever they hear.</p>
+          <div class="sources">
+            <button type="button" data-source="mic">
+              <strong>Microphone</strong>
+              <span>Built-in mic, or a loopback device such as BlackHole for system audio</span>
+            </button>
+            <button type="button" data-source="display">
+              <strong>Tab / screen audio</strong>
+              <span>Share a browser tab or screen with its audio (Chrome / Edge)</span>
+            </button>
+            <button type="button" data-source="file">
+              <strong>Audio file</strong>
+              <span>Open a file from this computer, or drop one onto the window</span>
+            </button>
+            <button type="button" data-source="demo">
+              <strong>Demo track</strong>
+              <span>A generated loop, for trying the visuals with nothing connected</span>
+            </button>
+          </div>
+          <div class="styles">
+            <p>No mic? Pick a kind of music and the visuals move to it, silently:</p>
+            <div class="style-chips" id="styleChips"></div>
+          </div>
+          <p class="hint" id="hint"></p>
+          <details class="about">
+            <summary>About these visualizations</summary>
+            <p>Remember watching Windows Media Player's Now Playing screen? This is a free, fan-made tribute that recreates its visualization collections in your browser: <strong>Bars and Waves</strong> (Bars, Scope, Ocean Mist, Fire Storm), <strong>Ambience</strong>, <strong>Battery</strong>, <strong>Alchemy</strong>, <strong>Plenoptic</strong> and <strong>Musical Colors</strong>. It also adds three modern ones (<strong>Neon Terrain</strong>, <strong>Radial Pulse</strong>, <strong>Particle Flow</strong>), hundreds of <strong>Milkdrop</strong> presets, the retro <strong>Classic Spectrum</strong> and <strong>Oscilloscope</strong>, <strong>Light Ribbons</strong>, and music-reactive takes on classic screensavers: the bouncing <strong>DVD logo</strong> (yes, it celebrates when it hits the corner), <strong>Starfield</strong>, <strong>Mystify</strong>, <strong>3D Pipes</strong>, <strong>3D Maze</strong>, <strong>3D Text</strong>, <strong>Bezier</strong>, <strong>Flying Toasters</strong>, <strong>Digital Rain</strong>, <strong>Bliss</strong> and the <strong>Blue Screen</strong>. Plus internet-classic memes that dance exactly on the beat: <strong>Rainbow Cat</strong>, <strong>Party Parrot</strong>, <strong>Dancing Baby</strong>, <strong>Vibing Cat</strong> and <strong>Doge</strong>.</p>
+            <p>Use your microphone, share a browser tab with its sound, or open a music file. No mic? Pick a music style (Techno, House, Hip-hop, Trap, Drum &amp; bass, Party, Rock, Chill) and the visuals move to that kind of music silently, perfect for a TV or a party. On a smart TV it switches to a full-screen remote-control mode, and there are apps for Android TV, LG and Samsung. To visualize all of your computer's sound on a Mac, select a loopback device such as BlackHole as the microphone. Audio never leaves your device. Keys: Space play or pause, F full screen, Left and Right change visualization, R random mode, N next Milkdrop preset, T switch the 2000s look on or off. The address bar always links to the visualization you are watching, so you can share it.</p>
+            <p class="fine">Not affiliated with or endorsed by Microsoft. Windows Media Player is a trademark of Microsoft Corporation.</p>
+          </details>
+        </div>
+      </div>
+
+      <div class="drop-hint" id="dropHint">Drop an audio file to play it</div>
+      <div class="toast" id="toast"></div>
+    </main>
+
+    <footer class="controls" aria-label="Player controls">
+      <div class="controls-left">
+        <div class="group">
+          <button type="button" class="icon-btn" id="prevViz" title="Previous visualization (Left arrow)">&#9664;</button>
+          <select id="vizSelect" title="Visualization" aria-label="Visualization"></select>
+          <button type="button" class="icon-btn" id="nextViz" title="Next visualization (Right arrow)">&#9654;</button>
+        </div>
+        <label class="check" title="Switch to a random visualization about every 20 seconds, on the start of a musical phrase or a drop, and on each new track (R)">
+          <input type="checkbox" id="autoCycle"> Random
+        </label>
+        <label class="check" title="Soft early-2000s look for the screensavers and memes (T)">
+          <input type="checkbox" id="retroLook" checked> 2000s look
+        </label>
+        <input type="text" id="vizText" maxlength="24" placeholder="Your text" title="Text for the 3D Text screensaver" aria-label="3D Text screensaver text" hidden>
+      </div>
+
+      <div class="controls-center">
+        <div class="transport">
+          <button type="button" class="icon-btn" id="stopBtn" title="Stop and release the audio source">&#9632;</button>
+          <button type="button" class="play-btn" id="playBtn" title="Play / pause (Space)"><span id="playIcon">&#9654;</span></button>
+          <button type="button" class="icon-btn" id="fullscreenBtn" title="Full screen (F)">&#x26F6;</button>
+        </div>
+        <div class="seek-row">
+          <span class="time" id="time">0:00</span>
+          <input type="range" id="seek" aria-label="Seek" min="0" max="1000" value="0" step="1" disabled title="Seek">
+          <span class="time" id="duration">0:00</span>
+        </div>
+        <div class="status" id="status">No audio source</div>
+      </div>
+
+      <div class="controls-right">
+        <div class="group source-buttons">
+          <button type="button" data-source="mic" title="Microphone">Mic</button>
+          <button type="button" data-source="display" title="Tab / screen audio">Tab</button>
+          <button type="button" data-source="file" title="Open an audio file">File</button>
+          <button type="button" data-source="demo" title="Demo track">Demo</button>
+        </div>
+        <select id="styleSelect" title="Music style: the visuals move as if this kind of music were playing, silently" aria-label="Music style"></select>
+        <select id="micDevices" title="Microphone / input device" aria-label="Input device" hidden></select>
+        <label class="volume" title="Volume (file and demo playback)">
+          <span>&#128266;</span>
+          <input type="range" id="volume" aria-label="Volume" min="0" max="100" value="80">
+        </label>
+      </div>
+    </footer>
+  </div>
+
+  <noscript>
+    <div class="noscript">This music visualizer needs JavaScript. It recreates the classic Windows Media Player visualizations (Bars and Waves, Ambience, Battery, Alchemy, Plenoptic, Musical Colors) and reacts live to your microphone, tab audio or a music file.</div>
+  </noscript>
+  <input type="file" id="fileInput" accept="audio/*,.mp3,.m4a,.wav,.ogg,.flac,.aac" hidden>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
