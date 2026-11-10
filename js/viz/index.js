@@ -10,6 +10,7 @@ import { MusicalColors } from './colors.js';
 import { Terrain } from './terrain.js';
 import { Radial } from './radial.js';
 import { Flow } from './flow.js';
+import { BeatRadar } from './radar.js';
 import { DvdBounce } from './dvd.js';
 import { Starfield } from './starfield.js';
 import { Mystify } from './mystify.js';
@@ -37,7 +38,7 @@ export const VISUALIZATIONS = [
   Ambience, Battery, Alchemy, Plenoptic, MusicalColors, Spikes,
   RetroSpectrum, RetroScope, LightRibbons,
   Milkdrop,
-  Terrain, Radial, Flow,
+  Terrain, Radial, Flow, BeatRadar,
   DvdBounce, Starfield, Mystify, Pipes, DigitalRain, Bezier, Marquee,
   Maze, FlyingToasters, Bliss, BlueScreen,
   RainbowCat, PartyParrot, DancingBaby, VibingCat, Doge,
