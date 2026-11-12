@@ -18,7 +18,7 @@ Output in `tv/dist/`:
 | `info.stamko.wmp_<version>_all.ipk` | LG webOS |
 | `WMPVisualizer-unsigned.wgt` | Samsung Tizen (must be signed first, see below) |
 
-Quickest route on any smart TV: open **wmp.stamko.info** in the TV's web browser. It switches to TV mode by itself.
+Quickest route on any smart TV: open **wmp.stamko.info** in the TV's web browser. It switches to TV mode by itself. A TV browser usually drives a pointer with the remote instead of sending keys, so there the control bar appears at the bottom whenever the pointer moves (previous / next visualization, random, sources, music styles) and hides again after a few seconds. Checked in a Chromium 63 engine, which is what a 2019 Samsung TV runs.
 
 ## What it can listen to on a TV
 

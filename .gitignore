@@ -12,3 +12,5 @@ tv/android/app/src/main/res/drawable-*/
 tv/android/local.properties
 tv/android/build/
 *.mp3
+# compiled copy of the app for old browsers, built on deploy
+legacy/

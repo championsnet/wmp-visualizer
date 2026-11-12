@@ -112,7 +112,8 @@ function resize() {
   const rect = stage.getBoundingClientRect();
   const w = Math.max(1, Math.round(rect.width));
   const h = Math.max(1, Math.round(rect.height));
-  const ratio = Math.min(window.devicePixelRatio || 1, TV_PLATFORM ? 1 : 2);
+  // TVs draw at about 720p: their chips are slow, and nobody sits close enough to tell
+  const ratio = TV_PLATFORM ? Math.min(1, 1280 / Math.max(w, h)) : Math.min(window.devicePixelRatio || 1, 2);
   if (w === cssW && h === cssH && ratio === dpr) return;
   cssW = w; cssH = h; dpr = ratio;
   canvas.width = Math.round(w * dpr);
@@ -340,7 +341,8 @@ function onFullscreenChange() {
 function bumpIdle() {
   app.classList.remove('idle');
   clearTimeout(idleTimer);
-  if (isFullscreen()) idleTimer = setTimeout(() => app.classList.add('idle'), 2500);
+  const tvWeb = TV_PLATFORM === 'web';       // a remote's pointer is slow: give it longer
+  if (isFullscreen() || tvWeb) idleTimer = setTimeout(() => app.classList.add('idle'), tvWeb ? 6000 : 2500);
 }
 
 // ---- drag and drop ------------------------------------------------------
@@ -630,6 +632,9 @@ function tvStepStyle(step) {
 }
 
 function tvKey(e) {
+  // a menu or slider in the control bar keeps its own keys
+  const el = e.target;
+  if (el && (el.tagName === 'SELECT' || el.tagName === 'INPUT') && el.closest && el.closest('.controls')) return;
   if (keyIs(e, 'BACK')) { if (!tvBack()) return; }
   else if (!overlay.hidden) {
     if (keyIs(e, 'LEFT')) tvMoveFocus(-1, 0);
@@ -673,7 +678,9 @@ function initTV() {
   }
   const help = document.createElement('p');
   help.className = 'tv-help';
-  help.textContent = 'Remote: ◀ ▶ change visualization · ▲ ▼ change music style · OK pause · Back menu, Back again exits · Red random · Green 2000s look · Yellow next Milkdrop preset';
+  help.textContent = TV_PLATFORM === 'web'
+    ? 'Move the pointer to bring up the controls. If your remote sends arrow keys to the page: \u25C0 \u25B6 change visualization \u00b7 \u25B2 \u25BC change music style \u00b7 OK pause.'
+    : 'Remote: ◀ ▶ change visualization · ▲ ▼ change music style · OK pause · Back menu, Back again exits · Red random · Green 2000s look · Yellow next Milkdrop preset';
   overlay.querySelector('.panel').appendChild(help);
   try {
     // Tizen only sends the media and colour keys once they are registered.
@@ -681,7 +688,19 @@ function initTV() {
       window.tizen.tvinputdevice.registerKey(k);
     }
   } catch (_) { /* not on Tizen */ }
+  if (TV_PLATFORM === 'web') {
+    // A TV browser: keep the control bar within the pointer's reach, at a size
+    // that reads from the sofa.
+    app.classList.add('tv-web');
+    const controls = document.querySelector('.controls');
+    const fit = () => { controls.style.zoom = Math.max(1, Math.min(window.innerWidth / 1250, window.innerHeight / 620)).toFixed(2); };
+    fit();
+    window.addEventListener('resize', fit);
+    window.addEventListener('keydown', bumpIdle, true);
+    bumpIdle();
+  }
   window.addEventListener('keydown', tvKey, true);
+  resize();                                  // the layout just changed
   window.__tvBack = tvBack;
   window.__tvKey = (code) => tvKey({ keyCode: code, preventDefault() {}, stopImmediatePropagation() {} });
   if (!engine.active) tvShowStart();
@@ -715,7 +734,10 @@ function boot() {
   });
 
   resize();
+  // (older engines cannot watch the stage for size changes: look now and then;
+  // resize() does nothing when the size is the same)
   if (window.ResizeObserver) new ResizeObserver(resize).observe(stage);
+  else setInterval(resize, 500);
   window.addEventListener('resize', resize);
 
   const params = new URLSearchParams(location.search);

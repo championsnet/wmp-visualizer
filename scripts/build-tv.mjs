@@ -27,8 +27,9 @@ function www(platform, out) {
   run('npx', ['--yes', 'esbuild@0.28.2', join(root, 'js/main.js'), '--bundle', '--format=iife',
     '--target=chrome53', '--minify', '--log-level=warning', `--outfile=${join(out, 'app.js')}`]);
   let html = readFileSync(join(root, 'index.html'), 'utf8');
-  html = html.replace('<script type="module" src="js/main.js"></script>',
+  html = html.replace(/<!-- app:start -->[\s\S]*<!-- app:end -->/,
     `<script>window.TV_PLATFORM = '${platform}';</script>\n  <script src="app.js"></script>`);
+  if (!html.includes('window.TV_PLATFORM')) throw new Error('index.html has no app:start / app:end block to replace');
   html = html.replace(/\s*<link rel="manifest"[^>]*>/, '');
   writeFileSync(join(out, 'index.html'), html);
   cpSync(join(root, 'css'), join(out, 'css'), { recursive: true });

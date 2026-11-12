@@ -12,3 +12,11 @@ if (P && !P.roundRect) {
     this.closePath();
   };
 }
+
+if (!String.prototype.padStart) {
+  String.prototype.padStart = function padStart(length, fill = ' ') {       // eslint-disable-line no-extend-native
+    let s = String(this);
+    while (s.length < length) s = fill + s;
+    return s.slice(s.length - Math.max(length, String(this).length));
+  };
+}

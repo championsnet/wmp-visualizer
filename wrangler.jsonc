@@ -1,9 +1,12 @@
-// Cloudflare deployment: a static-assets Worker serving this folder as-is (no build step).
+// Cloudflare deployment: a static-assets Worker serving this folder as-is. The only build
+// step is the compiled copy of the app for old browsers (see "build" below).
 //   npx wrangler deploy
 // Files listed in .assetsignore are not uploaded.
 {
   "name": "wmp",
   "compatibility_date": "2026-10-01",
+  // Old browsers (smart TVs) get the modules compiled into legacy/app.js; rebuilt on every deploy.
+  "build": { "command": "npm run build:legacy" },
   "assets": {
     "directory": "./",
     "html_handling": "auto-trailing-slash",

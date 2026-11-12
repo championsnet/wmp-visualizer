@@ -55,6 +55,12 @@
     ]
   }
   </script>
+  <script>
+    // Engines that cannot parse the modern code (smart TVs from before about
+    // 2021, old phones) get a "legacy" class for CSS fallbacks, and further
+    // down a compiled copy of the app instead of the modules.
+    try { new Function('class A { static a = 1 } var b = {}; b.c ||= b?.d ?? 1;'); } catch (e) { document.documentElement.className += ' legacy'; }
+  </script>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -167,6 +173,15 @@
     <div class="noscript">This music visualizer needs JavaScript. It recreates the classic Windows Media Player visualizations (Bars and Waves, Ambience, Battery, Alchemy, Plenoptic, Musical Colors) and reacts live to your microphone, tab audio or a music file.</div>
   </noscript>
   <input type="file" id="fileInput" accept="audio/*,.mp3,.m4a,.wav,.ogg,.flac,.aac" hidden>
-  <script type="module" src="js/main.js"></script>
+  <!-- app:start -->
+  <script>
+    (function () {
+      var s = document.createElement('script');
+      if (/\blegacy\b/.test(document.documentElement.className) || !('noModule' in s)) s.src = 'legacy/app.js';
+      else { s.type = 'module'; s.src = 'js/main.js'; }
+      document.body.appendChild(s);
+    })();
+  </script>
+  <!-- app:end -->
 </body>
 </html>

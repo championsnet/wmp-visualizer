@@ -130,6 +130,8 @@ The site is a Cloudflare static-assets Worker, configured in `wrangler.jsonc` wi
 npx wrangler deploy
 ```
 
+The page itself is plain ES modules with no build step. Browsers too old to parse them (smart TVs from before about 2021: a 2019 Samsung runs a Chromium 63 engine) get the same app compiled down into `legacy/app.js`; `index.html` picks one or the other, and `wrangler deploy` rebuilds that file every time (`npm run build:legacy` does it by hand). The stylesheet avoids `inset`, flex `gap` and `min()` for the same reason, or carries a fallback under `html.legacy`. To check a change against such an engine, run it in a Chromium of that age (Google keeps old snapshots; build 508578 is Chromium 63), not just in a current browser with a TV's user agent.
+
 `_headers` sets the security and caching headers served with every file. SEO files live at the root: `robots.txt`, `sitemap.xml`, `manifest.webmanifest`, `icon.svg` and the 1200x630 share image `og.png`. Update `lastmod` in the sitemap when the page changes meaningfully.
 
 ## Layout
